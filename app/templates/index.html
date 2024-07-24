@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binance WebSocket</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        body {
+            padding: 20px;
+        }
+        table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body onload="fetchSymbols()">
+    <div class="container">
+        <h1 class="my-4">Binance Market Data</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="symbols-dropdown">Select a symbol</label>
+                    <select class="form-control" id="symbols-dropdown">
+                        <option value="">Select a symbol</option>
+                    </select>
+                    <button class="btn btn-primary mt-2" onclick="subscribe()">Subscribe to Trades</button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="subscribed-symbols-dropdown">Subscribed Symbols</label>
+                    <select class="form-control" id="subscribed-symbols-dropdown">
+                        <option value="">Select a symbol to unsubscribe</option>
+                    </select>
+                    <button class="btn btn-danger mt-2" onclick="unsubscribe()">Unsubscribe from Trades</button>
+                </div>
+            </div>
+        </div>
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Event Type</th>
+                    <th>Event Time</th>
+                    <th>Symbol</th>
+                    <th>Trade ID</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Trade Time</th>
+                    <th>Is Buyer Market Maker</th>
+                </tr>
+            </thead>
+            <tbody id="market-data">
+                <!-- Market data will be displayed here -->
+            </tbody>
+        </table>
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <button class="btn btn-success mr-2" onclick="start()">Start WebSocket</button>
+                <button class="btn btn-warning" onclick="stop()">Stop WebSocket</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var socket = io();
+        var maxRows = 30;
+
+        socket.on('market_data', function(data) {
+            if (!data.e || !data.E || !data.s || !data.t || !data.p || !data.q || !data.T || data.m === undefined) {
+                return;
+            }
+            var marketDataTable = document.getElementById('market-data');
+            var row = marketDataTable.insertRow(0);
+            row.innerHTML = `
+                <td>${data.e}</td>
+                <td>${new Date(data.E).toLocaleString()}</td>
+                <td>${data.s}</td>
+                <td>${data.t}</td>
+                <td>${data.p}</td>
+                <td>${data.q}</td>
+                <td>${new Date(data.T).toLocaleString()}</td>
+                <td>${data.m}</td>
+            `;
+            if (marketDataTable.rows.length > maxRows) {
+                marketDataTable.deleteRow(maxRows);
+            }
+        });
+
+        function start() {
+            fetch('/start')
+                .then(response => response.json())
+                .then(data => console.log(data));
+        }
+
+        function stop() {
+            fetch('/stop')
+                .then(response => response.json())
+                .then(data => console.log(data));
+        }
+
+        function fetchSymbols() {
+            fetch('/symbols')
+                .then(response => response.json())
+                .then(symbols => {
+                    var dropdown = document.getElementById('symbols-dropdown');
+                    dropdown.innerHTML = '<option value="">Select a symbol</option>';
+                    symbols.forEach(symbol => {
+                        var option = document.createElement('option');
+                        option.value = symbol;
+                        option.text = symbol.toUpperCase();
+                        dropdown.add(option);
+                    });
+                });
+        }
+
+        function subscribe() {
+            var dropdown = document.getElementById('symbols-dropdown');
+            var symbol = dropdown.value;
+            if (symbol) {
+                fetch(`/subscribe?symbol=${symbol}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        addSubscribedSymbol(symbol);
+                    });
+            } else {
+                alert("Please select a symbol first.");
+            }
+        }
+
+        function unsubscribe() {
+            var dropdown = document.getElementById('subscribed-symbols-dropdown');
+            var symbol = dropdown.value;
+            if (symbol) {
+                fetch(`/unsubscribe?symbol=${symbol}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        removeSubscribedSymbol(symbol);
+                    });
+            } else {
+                alert("Please select a symbol first.");
+            }
+        }
+
+        function addSubscribedSymbol(symbol) {
+            var dropdown = document.getElementById('subscribed-symbols-dropdown');
+            var option = document.createElement('option');
+            option.value = symbol;
+            option.text = symbol.toUpperCase();
+            option.id = `subscribed-${symbol}`;
+            dropdown.add(option);
+        }
+
+        function removeSubscribedSymbol(symbol) {
+            var option = document.getElementById(`subscribed-${symbol}`);
+            if (option) {
+                option.remove();
+            }
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
