@@ -2,6 +2,8 @@ import asyncio
 import websockets
 import threading
 import json
+from .database import DatabaseManager
+
 
 class WebSocketManager:
     def __init__(self, socketio):
@@ -11,6 +13,7 @@ class WebSocketManager:
         self.thread = None
         self.socketio = socketio
         self.subscriptions = []
+        self.db_manager = DatabaseManager()
 
     def start(self):
         self.loop = asyncio.new_event_loop()
@@ -42,6 +45,7 @@ class WebSocketManager:
                 data = json.loads(message)
                 if 'e' in data and data['e'] == 'trade':
                     self.socketio.emit('market_data', data)
+                    self.db_manager.insert_data(data)
             except websockets.ConnectionClosed:
                 break
 
