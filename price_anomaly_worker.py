@@ -10,6 +10,7 @@ class PriceAnomalyWorker:
         self.connection = sqlite3.connect(db_name, check_same_thread=False)
         self.server_url = server_url
         self.create_alerts_table()
+        self.last_processed_time = self.get_last_processed_time()
 
     def create_alerts_table(self):
         query = '''
@@ -24,14 +25,20 @@ class PriceAnomalyWorker:
         self.connection.execute(query)
         self.connection.commit()
 
+    def get_last_processed_time(self):
+        query = 'SELECT MAX(event_time) FROM market_data'
+        cursor = self.connection.execute(query)
+        result = cursor.fetchone()
+        return result[0] if result and result[0] else 0
+
     def fetch_recent_data(self, symbol, window_size=100):
         query = '''
             SELECT price FROM market_data
-            WHERE symbol = ?
+            WHERE symbol = ? AND event_time > ?
             ORDER BY event_time DESC
             LIMIT ?
         '''
-        cursor = self.connection.execute(query, (symbol, window_size))
+        cursor = self.connection.execute(query, (symbol, self.last_processed_time, window_size))
         prices = cursor.fetchall()
         return [float(price[0]) for price in prices]
 

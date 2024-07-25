@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-
+import numpy as np
 from price_anomaly_worker import PriceAnomalyWorker
 
 
@@ -11,13 +11,15 @@ class TestPriceAnomalyWorker(unittest.TestCase):
         self.mock_connection = MagicMock()
         mock_sqlite_connect.return_value = self.mock_connection
         self.mock_cursor = MagicMock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.mock_cursor.fetchone.return_value = [0]
         self.mock_connection.execute.return_value = self.mock_cursor
         self.mock_cursor.fetchall.return_value = []
         self.worker = PriceAnomalyWorker(db_name='test.db')
         self.mock_requests_post = mock_requests_post
 
     def test_create_alerts_table(self):
-        self.mock_connection.execute.assert_called_with('''
+        self.mock_connection.execute.assert_any_call('''
             CREATE TABLE IF NOT EXISTS alerts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 symbol TEXT NOT NULL,
