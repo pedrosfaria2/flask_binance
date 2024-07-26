@@ -1,7 +1,6 @@
 import sqlite3
 import os
 
-# Defina o caminho relativo para o banco de dados
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATABASE_PATH = os.path.join(BASE_DIR, 'market_data.db')
 
