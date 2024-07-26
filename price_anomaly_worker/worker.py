@@ -1,43 +1,8 @@
 import time
-import sqlite3
-import numpy as np
-from scipy.stats import zscore
 import pika
 import json
-
-
-def detect_anomalies(prices, threshold=3.0):
-    z_scores = zscore(prices)
-    anomalies = np.where(np.abs(z_scores) > threshold)
-    return anomalies[0].size > 0
-
-
-def get_symbols():
-    try:
-        conn = sqlite3.connect('market_data.db')
-        cursor = conn.cursor()
-        query = "SELECT DISTINCT symbol FROM market_data"
-        cursor.execute(query)
-        symbols = cursor.fetchall()
-        conn.close()
-        return [symbol[0] for symbol in symbols]
-    except sqlite3.Error as e:
-        print(f"Error accessing the database: {e}")
-        return []
-
-
-def get_prices_for_symbol(symbol):
-    try:
-        conn = sqlite3.connect('market_data.db')
-        cursor = conn.cursor()
-        query = f"SELECT price FROM market_data WHERE symbol = '{symbol}' ORDER BY event_time DESC LIMIT 100"
-        cursor.execute(query)
-        prices = cursor.fetchall()
-        conn.close()
-        return [float(price[0]) for price in prices]
-    except sqlite3.Error as e:
-        print(f"Error accessing the database: {e}")
-        return []
+from .anomaly_detection import detect_anomalies
+from .database import get_symbols, get_prices_for_symbol
 
 
 class PriceAnomalyWorker:
@@ -95,8 +60,3 @@ class PriceAnomalyWorker:
                 if detect_anomalies(prices):
                     self.publish_anomaly(symbol, float(prices[-1]))
             time.sleep(1)
-
-
-if __name__ == "__main__":
-    worker = PriceAnomalyWorker()
-    worker.run()

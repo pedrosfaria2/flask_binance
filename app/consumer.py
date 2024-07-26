@@ -1,11 +1,13 @@
 import pika
 import json
 import time
+from app import socketio
 
 
 def callback(ch, method, properties, body):
     alert = json.loads(body)
     print(f"Received alert: {alert}")
+    socketio.emit('price_anomaly', alert)
 
 
 def main():
@@ -31,7 +33,3 @@ def main():
 
     print('Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
-
-
-if __name__ == "__main__":
-    main()
