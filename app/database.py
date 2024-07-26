@@ -20,15 +20,6 @@ class DatabaseManager:
                     is_buyer_market_maker INTEGER
                 )
             ''')
-            self.connection.execute('''
-                CREATE TABLE IF NOT EXISTS alerts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    symbol TEXT,
-                    current_price REAL,
-                    message TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
 
     def insert_data(self, data):
         with self.connection:
@@ -37,10 +28,3 @@ class DatabaseManager:
                     event_type, event_time, symbol, trade_id, price, quantity, trade_time, is_buyer_market_maker
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (data['e'], data['E'], data['s'], data['t'], data['p'], data['q'], data['T'], data['m']))
-
-    def insert_alert(self, alert):
-        with self.connection:
-            self.connection.execute('''
-                INSERT INTO alerts (symbol, current_price, message)
-                VALUES (?, ?, ?)
-            ''', (alert['symbol'], alert['current_price'], alert['message']))
